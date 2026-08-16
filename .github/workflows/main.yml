@@ -19,11 +19,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Configurar Gradle Automático
-      uses: gradle/actions/setup-gradle@v3
+    - name: Criar Gradle Wrapper
+      run: gradle wrapper
+
+    - name: Dar permissão de execução
+      run: chmod +x gradlew
 
     - name: Compilar APK
-      run: gradle assembleDebug
+      run: ./gradlew assembleDebug
 
     - name: Salvar APK para Download
       uses: actions/upload-artifact@v4

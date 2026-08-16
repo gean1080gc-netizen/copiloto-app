@@ -18,28 +18,17 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: 'gradle'
 
-    - name: Configurar Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Aceitar Licenças e Instalar Componentes
-      run: |
-        yes | sdkmanager --licenses || true
-        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-
-    - name: Garantir Gradle Wrapper
-      run: |
-        if [ ! -f "gradlew" ]; then
-          gradle wrapper --gradle-version 8.2
-        fi
-        chmod +x gradlew
+    - name: Configurar Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.5'
 
     - name: Compilar APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace
+      run: gradle assembleDebug --stacktrace
 
     - name: Salvar APK gerado
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: app/build/outputs/apk/debug/*.apk
+        path: "**/build/outputs/apk/debug/*.apk"

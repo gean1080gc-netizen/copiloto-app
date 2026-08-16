@@ -19,10 +19,59 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Configurar Gradle
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.5'
+    - name: Configurar Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Criar Configurações Raiz do Gradle
+      run: |
+        rm -f build.gradle settings.gradle
+
+        cat << 'EOF' > settings.gradle.kts
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "copiloto"
+        include(":app")
+        EOF
+
+        cat << 'EOF' > build.gradle.kts
+        plugins {
+            id("com.android.application") version "8.2.2" apply false
+            id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+        }
+        EOF
+
+    - name: Injetar Tema de Suporte
+      run: |
+        mkdir -p app/src/main/res/values
+        cat << 'EOF' > app/src/main/res/values/auto_generated_themes.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <style name="Theme.CopilotoAuto" parent="android:Theme.Material.Light.NoActionBar" />
+        </resources>
+        EOF
+
+    - name: Gerar Gradle Wrapper 8.2
+      run: |
+        gradle wrapper --gradle-version 8.2
+        chmod +x gradlew
 
     - name: Compilar APK
-      run: gradle assembleDebug --console=plain
+      run: ./gradlew assembleDebug --stacktrace
+
+    - name: Salvar APK Gerado
+      uses: actions/upload-artifact@v4
+      with:
+        name: copiloto-apk
+        path: "**/build/outputs/apk/debug/*.apk"

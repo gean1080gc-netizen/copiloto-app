@@ -19,14 +19,16 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Configurar Android SDK
-      uses: android-actions/setup-android@v3
+    - name: Configurar Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.2'
 
-    - name: Criar Configurações Raiz do Gradle
+    - name: Configurar Estrutura do Projeto
       run: |
-        rm -f build.gradle settings.gradle
+        rm -f build.gradle settings.gradle build.gradle.kts settings.gradle.kts
 
-        cat << 'EOF' > settings.gradle.kts
+        cat << 'EOF' > settings.gradle
         pluginManagement {
             repositories {
                 google()
@@ -42,37 +44,24 @@ jobs:
             }
         }
         rootProject.name = "copiloto"
-        include(":app")
+        include ':app'
         EOF
 
-        cat << 'EOF' > build.gradle.kts
-        plugins {
-            id("com.android.application") version "8.2.2" apply false
-            id("org.jetbrains.kotlin.android") version "1.7.20" apply false
+        cat << 'EOF' > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.4'
+                classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20'
+            }
         }
         EOF
 
-    - name: Ajustar Compatibilidade do Compose e Tema
+    - name: Injetar Tema de Suporte
       run: |
-        FILE=$(find app -name "build.gradle*" | head -n 1)
-        if [ -n "$FILE" ]; then
-          cat << 'EOF' >> "$FILE"
-
-        android {
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-            }
-            kotlinOptions {
-                freeCompilerArgs += listOf(
-                    "-P",
-                    "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
-                )
-            }
-        }
-        EOF
-        fi
-
         mkdir -p app/src/main/res/values
         cat << 'EOF' > app/src/main/res/values/auto_generated_themes.xml
         <?xml version="1.0" encoding="utf-8"?>
@@ -81,13 +70,12 @@ jobs:
         </resources>
         EOF
 
-    - name: Gerar Gradle Wrapper 8.2
-      run: |
-        gradle wrapper --gradle-version 8.2
-        chmod +x gradlew
-
     - name: Compilar APK
-      run: ./gradlew assembleDebug -Pkotlin.jvm.target.validation.mode=warning --stacktrace
+      run: |
+        gradle assembleDebug \
+          -Pkotlin.jvm.target.validation.mode=warning \
+          -Pandroid.suppressUnsupportedCompileSdk=33 \
+          --console=plain
 
     - name: Salvar APK Gerado
       uses: actions/upload-artifact@v4

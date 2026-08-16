@@ -52,15 +52,27 @@ jobs:
         }
         EOF
 
-    - name: Injetar Tema e Dependências Ausentes
+    - name: Padronizar Java 17 e Injetar Temas
       run: |
-        FILE=$(find app -name "build.gradle*" | head -n 1)
-        if [ -n "$FILE" ]; then
-          echo "" >> "$FILE"
-          echo "dependencies {" >> "$FILE"
-          echo '    implementation("com.google.android.material:material:1.11.0")' >> "$FILE"
-          echo '    implementation("androidx.appcompat:appcompat:1.6.1")' >> "$FILE"
-          echo "}" >> "$FILE"
+        FILE="app/build.gradle.kts"
+        if [ -f "$FILE" ]; then
+          cat << 'EOF' >> "$FILE"
+
+        android {
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+
+        dependencies {
+            implementation("com.google.android.material:material:1.11.0")
+            implementation("androidx.appcompat:appcompat:1.6.1")
+        }
+        EOF
         fi
 
         mkdir -p app/src/main/res/values

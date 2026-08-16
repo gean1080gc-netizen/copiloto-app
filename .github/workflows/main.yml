@@ -19,8 +19,21 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Criar Gradle Wrapper
-      run: gradle wrapper
+    - name: Configurar Gradle 8.7
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.7'
+
+    - name: Configurar Repositórios do Google
+      run: |
+        if [ -f "settings.gradle.kts" ]; then
+          if ! grep -q "google()" settings.gradle.kts; then
+            echo -e 'pluginManagement {\n  repositories {\n    google()\n    mavenCentral()\n    gradlePluginPortal()\n  }\n}\n' | cat - settings.gradle.kts > temp && mv temp settings.gradle.kts
+          fi
+        fi
+
+    - name: Criar Executável do Gradle
+      run: gradle wrapper --gradle-version 8.7
 
     - name: Dar permissão de execução
       run: chmod +x gradlew

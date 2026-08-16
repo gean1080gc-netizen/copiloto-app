@@ -19,15 +19,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Configurar Gradle 8.5
+    - name: Configurar Gradle
       uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.5'
 
-    - name: Criar Arquivos Raiz Ausentes
+    - name: Configurar Repositórios e Estrutura Raiz
       run: |
-        if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
-          cat << 'EOF' > settings.gradle.kts
+        cat << 'EOF' > settings.gradle
         pluginManagement {
             repositories {
                 google()
@@ -36,25 +33,34 @@ jobs:
             }
         }
         dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositoriesMode.set(RepositoriesMode.PREPARE_FOR_PREFERENCE)
             repositories {
                 google()
                 mavenCentral()
             }
         }
         rootProject.name = "copiloto"
-        include(":app")
+        include ':app'
         EOF
-        fi
 
-        if [ ! -f "build.gradle.kts" ] && [ ! -f "build.gradle" ]; then
-          cat << 'EOF' > build.gradle.kts
-        plugins {
-            id("com.android.application") version "8.2.2" apply false
-            id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+        cat << 'EOF' > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.2.2'
+                classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
+            }
+        }
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
         }
         EOF
-        fi
 
     - name: Compilar APK
       run: gradle assembleDebug

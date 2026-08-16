@@ -19,10 +19,10 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Configurar Gradle
-      uses: gradle/actions/setup-gradle@v3
+    - name: Configurar Android SDK
+      uses: android-actions/setup-android@v3
 
-    - name: Configurar Repositórios e Estrutura Raiz
+    - name: Configurar Estrutura Raiz
       run: |
         cat << 'EOF' > settings.gradle
         pluginManagement {
@@ -33,7 +33,7 @@ jobs:
             }
         }
         dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
             repositories {
                 google()
                 mavenCentral()
@@ -56,8 +56,14 @@ jobs:
         }
         EOF
 
+    - name: Gerar Executável Gradle 8.5
+      run: gradle wrapper --gradle-version 8.5
+
+    - name: Dar permissão no wrapper
+      run: chmod +x gradlew
+
     - name: Compilar APK
-      run: gradle assembleDebug
+      run: ./gradlew assembleDebug --stacktrace
 
     - name: Salvar APK para Download
       uses: actions/upload-artifact@v4

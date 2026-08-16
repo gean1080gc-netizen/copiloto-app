@@ -19,27 +19,30 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Configurar Gradle 8.7
+    - name: Configurar Gradle
       uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.7'
 
-    - name: Configurar Repositórios do Google
+    - name: Criar Arquivos Raiz Ausentes
       run: |
-        if [ -f "settings.gradle.kts" ]; then
-          if ! grep -q "google()" settings.gradle.kts; then
-            echo -e 'pluginManagement {\n  repositories {\n    google()\n    mavenCentral()\n    gradlePluginPortal()\n  }\n}\n' | cat - settings.gradle.kts > temp && mv temp settings.gradle.kts
-          fi
+        if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
+          echo 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }' > settings.gradle.kts
+          echo 'dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }' >> settings.gradle.kts
+          echo 'rootProject.name = "copiloto"' >> settings.gradle.kts
+          echo 'include(":app")' >> settings.gradle.kts
         fi
 
-    - name: Criar Executável do Gradle
-      run: gradle wrapper --gradle-version 8.7
+        if [ ! -f "build.gradle.kts" ] && [ ! -f "build.gradle" ]; then
+          echo 'plugins {' > build.gradle.kts
+          echo '    id("com.android.application") version "8.2.2" apply false' >> build.gradle.kts
+          echo '    id("org.jetbrains.kotlin.android") version "1.9.22" apply false' >> build.gradle.kts
+          echo '}' >> build.gradle.kts
+        fi
 
-    - name: Dar permissão de execução
-      run: chmod +x gradlew
-
-    - name: Compilar APK
-      run: ./gradlew assembleDebug
+    - name: Criar Executável e Compilar
+      run: |
+        gradle wrapper --gradle-version 8.2
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Salvar APK para Download
       uses: actions/upload-artifact@v4

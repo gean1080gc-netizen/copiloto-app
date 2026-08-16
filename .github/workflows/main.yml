@@ -52,8 +52,21 @@ jobs:
         }
         EOF
 
-    - name: Injetar Tema de Suporte
+    - name: Corrigir Compatibilidade e Temas do App
       run: |
+        FILE=$(find app -name "build.gradle*" | head -n 1)
+        if [ -n "$FILE" ]; then
+          cat << 'EOF' >> "$FILE"
+
+        android {
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+        }
+        EOF
+        fi
+
         mkdir -p app/src/main/res/values
         cat << 'EOF' > app/src/main/res/values/auto_generated_themes.xml
         <?xml version="1.0" encoding="utf-8"?>
@@ -68,7 +81,7 @@ jobs:
         chmod +x gradlew
 
     - name: Compilar APK
-      run: ./gradlew assembleDebug -Pkotlin.jvm.target.validation.mode=warning --console=plain
+      run: ./gradlew assembleDebug --stacktrace
 
     - name: Salvar APK Gerado
       uses: actions/upload-artifact@v4

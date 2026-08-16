@@ -22,7 +22,7 @@ jobs:
     - name: Configurar Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Limpar e Criar Arquivos Raiz (.kts)
+    - name: Criar Arquivos Raiz (.kts)
       run: |
         rm -f build.gradle settings.gradle
 
@@ -35,7 +35,7 @@ jobs:
             }
         }
         dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
             repositories {
                 google()
                 mavenCentral()
@@ -51,6 +51,18 @@ jobs:
             id("org.jetbrains.kotlin.android") version "1.9.22" apply false
         }
         EOF
+
+    - name: Injetar Dependências de Tema do Android
+      run: |
+        FILE=$(find app -name "build.gradle*" | head -n 1)
+        if [ -n "$FILE" ]; then
+          echo "" >> "$FILE"
+          echo "dependencies {" >> "$FILE"
+          echo '    implementation("com.google.android.material:material:1.11.0")' >> "$FILE"
+          echo '    implementation("androidx.appcompat:appcompat:1.6.1")' >> "$FILE"
+          echo '    implementation("androidx.car.app:app:1.4.0")' >> "$FILE"
+          echo "}" >> "$FILE"
+        fi
 
     - name: Gerar Executável Gradle 8.2
       run: gradle wrapper --gradle-version 8.2

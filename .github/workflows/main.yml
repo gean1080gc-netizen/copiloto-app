@@ -52,7 +52,7 @@ jobs:
         }
         EOF
 
-    - name: Injetar Dependências de Tema do Android
+    - name: Injetar Tema e Dependências Ausentes
       run: |
         FILE=$(find app -name "build.gradle*" | head -n 1)
         if [ -n "$FILE" ]; then
@@ -60,9 +60,17 @@ jobs:
           echo "dependencies {" >> "$FILE"
           echo '    implementation("com.google.android.material:material:1.11.0")' >> "$FILE"
           echo '    implementation("androidx.appcompat:appcompat:1.6.1")' >> "$FILE"
-          echo '    implementation("androidx.car.app:app:1.4.0")' >> "$FILE"
           echo "}" >> "$FILE"
         fi
+
+        mkdir -p app/src/main/res/values
+        cat << 'EOF' > app/src/main/res/values/auto_generated_themes.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <style name="Theme.CopilotoAuto" parent="Theme.AppCompat.Light.NoActionBar">
+            </style>
+        </resources>
+        EOF
 
     - name: Gerar Executável Gradle 8.2
       run: gradle wrapper --gradle-version 8.2

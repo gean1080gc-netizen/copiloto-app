@@ -18,31 +18,19 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: 'gradle'
 
     - name: Configurar Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Instalar componentes do Android
+    - name: Aceitar Licenças e Instalar Componentes
       run: |
-        sdkmanager "platform-tools" \
-                   "platforms;android-33" \
-                   "build-tools;33.0.2"
-
-    - name: Cache do Gradle
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          gradle-${{ runner.os }}
+        yes | sdkmanager --licenses || true
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
     - name: Garantir Gradle Wrapper
       run: |
         if [ ! -f "gradlew" ]; then
-          sudo apt-get update
-          sudo apt-get install -y gradle
           gradle wrapper --gradle-version 8.2
         fi
         chmod +x gradlew

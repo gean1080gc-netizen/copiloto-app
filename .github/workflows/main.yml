@@ -22,9 +22,11 @@ jobs:
     - name: Configurar Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Configurar Estrutura Raiz
+    - name: Limpar e Criar Arquivos Raiz (.kts)
       run: |
-        cat << 'EOF' > settings.gradle
+        rm -f build.gradle settings.gradle
+
+        cat << 'EOF' > settings.gradle.kts
         pluginManagement {
             repositories {
                 google()
@@ -40,30 +42,24 @@ jobs:
             }
         }
         rootProject.name = "copiloto"
-        include ':app'
+        include(":app")
         EOF
 
-        cat << 'EOF' > build.gradle
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.2.2'
-                classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
-            }
+        cat << 'EOF' > build.gradle.kts
+        plugins {
+            id("com.android.application") version "8.2.2" apply false
+            id("org.jetbrains.kotlin.android") version "1.9.22" apply false
         }
         EOF
 
-    - name: Gerar Executável Gradle 8.5
-      run: gradle wrapper --gradle-version 8.5
+    - name: Gerar Executável Gradle 8.2
+      run: gradle wrapper --gradle-version 8.2
 
     - name: Dar permissão no wrapper
       run: chmod +x gradlew
 
     - name: Compilar APK
-      run: ./gradlew assembleDebug --stacktrace
+      run: ./gradlew assembleDebug
 
     - name: Salvar APK para Download
       uses: actions/upload-artifact@v4

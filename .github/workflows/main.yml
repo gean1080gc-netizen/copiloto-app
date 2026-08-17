@@ -24,7 +24,7 @@ jobs:
       with:
         gradle-version: '8.2'
 
-    - name: Configurar Estrutura e Propriedades do Projeto
+    - name: Configurar Estrutura e Atualizar Compose
       run: |
         rm -f build.gradle settings.gradle build.gradle.kts settings.gradle.kts gradle.properties
 
@@ -55,7 +55,7 @@ jobs:
             }
             dependencies {
                 classpath 'com.android.tools.build:gradle:8.1.4'
-                classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.20'
+                classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20'
             }
         }
         EOF
@@ -65,6 +65,11 @@ jobs:
         kotlin.suppressKotlinVersionCompatibilityCheck=true
         kotlin.jvm.target.validation.mode=warning
         EOF
+
+        APP_BUILD=$(find app -name "build.gradle*" | head -n 1)
+        if [ -n "$APP_BUILD" ]; then
+          sed -i 's/kotlinCompilerExtensionVersion.*/kotlinCompilerExtensionVersion = "1.4.6"/g' "$APP_BUILD"
+        fi
 
     - name: Injetar Tema de Suporte
       run: |
@@ -77,7 +82,7 @@ jobs:
         EOF
 
     - name: Compilar APK
-      run: gradle assembleDebug --console=plain
+      run: gradle assembleDebug --stacktrace --console=plain
 
     - name: Salvar APK Gerado
       uses: actions/upload-artifact@v4

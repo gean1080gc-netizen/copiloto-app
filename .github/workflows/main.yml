@@ -24,7 +24,7 @@ jobs:
       with:
         gradle-version: '8.2'
 
-    - name: Sobrescrever Configurações do Gradle
+    - name: Normalizar Configurações do Projeto
       run: |
         rm -f build.gradle settings.gradle build.gradle.kts settings.gradle.kts gradle.properties
 
@@ -58,12 +58,6 @@ jobs:
                 classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20'
             }
         }
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
         EOF
 
         cat << 'EOF' > gradle.properties
@@ -72,6 +66,9 @@ jobs:
         kotlin.suppressKotlinVersionCompatibilityCheck=true
         kotlin.jvm.target.validation.mode=warning
         EOF
+
+        # Substitui automaticamente qualquer versão antiga do Compose Compiler para a 1.4.6 (compatível com Kotlin 1.8.20)
+        find app/ -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/kotlinCompilerExtensionVersion.*/kotlinCompilerExtensionVersion = "1.4.6"/g' {} +
 
     - name: Injetar Tema de Suporte
       run: |
@@ -83,8 +80,14 @@ jobs:
         </resources>
         EOF
 
-    - name: Compilar APK
-      run: gradle assembleDebug --stacktrace --console=plain
+    - name: Compilar APK e Diagnosticar
+      run: |
+        gradle assembleDebug --console=plain > build_output.log 2>&1 || {
+          echo "==================== MOTIVO EXATO DA FALHA ===================="
+          grep -E "e: |Error:|FAILED:|AAPT:" build_output.log | head -n 30
+          echo "=============================================================="
+          exit 1
+        }
 
     - name: Salvar APK Gerado
       uses: actions/upload-artifact@v4

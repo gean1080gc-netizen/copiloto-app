@@ -70,12 +70,16 @@ jobs:
         </resources>
         EOF
 
-    - name: Compilar APK com Diagnóstico
+    - name: Compilar APK e Filtrar Erro
       run: |
         gradle assembleDebug \
-          --info \
           -Pkotlin.jvm.target.validation.mode=warning \
-          -Pandroid.suppressUnsupportedCompileSdk=33
+          -Pandroid.suppressUnsupportedCompileSdk=33 \
+          --console=plain > build.log 2>&1 || {
+            echo "================ DIAGNÓSTICO DO ERRO ================"
+            grep -E -i "e:|aapt|error:|failure:|xml" build.log -B 2 -A 5 || tail -n 30 build.log
+            exit 1
+          }
 
     - name: Salvar APK Gerado
       uses: actions/upload-artifact@v4

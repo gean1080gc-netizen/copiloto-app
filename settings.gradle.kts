@@ -14,4 +14,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "CopilotoAuto"
-include(":aplicativo")
+include(":app")

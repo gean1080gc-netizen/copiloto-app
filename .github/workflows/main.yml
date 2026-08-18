@@ -25,7 +25,7 @@ jobs:
         gradle-version: '8.2'
 
     - name: Compilar APK
-      run: gradle assembleDebug --console=plain
+      run: ./gradlew :aplicativo:assembleDebug --console=plain
 
     - name: Salvar APK Gerado
       uses: actions/upload-artifact@v4

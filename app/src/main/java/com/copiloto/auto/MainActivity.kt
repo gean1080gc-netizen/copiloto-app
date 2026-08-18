@@ -1,7 +1,10 @@
 package com.copiloto.auto
 
-import androidx.activity.ComponentActivity
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : ComponentActivity() {
-    // UI em Jetpack Compose com Fundo #121212 e Neon #00FF87
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
 }

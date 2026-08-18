@@ -1,149 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F1419"
-    android:fillViewport="true">
+    android:background="#000000"
+    android:orientation="vertical"
+    android:padding="20dp">
 
-    <LinearLayout
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CoPiloto"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/btnStatus"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:layout_marginTop="20dp"
+        android:text="ATIVO"
+        android:textSize="24sp"
+        android:backgroundTint="#00FF00" />
+
+    <CheckBox android:id="@+id/cbWhatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="WhatsApp" android:textColor="#FFFFFF" android:layout_marginTop="20dp"/>
+    <CheckBox android:id="@+id/cbUber" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Uber" android:textColor="#FFFFFF" />
+    <CheckBox android:id="@+id/cb99" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="99" android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btnSimular"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:layout_marginTop="40dp"
+        android:text="Simular Leitura" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="CONEXÃO SEGURA NA PISTA"
-            android:textColor="#00FF66"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.1" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="CoPiloto"
-            android:textColor="#FFFFFF"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:layout_marginTop="4dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="STATUS DO ASSISTENTE"
-            android:textColor="#8B98A5"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="32dp" />
-
-        <!-- Circulo Verde Central -->
-        <LinearLayout
-            android:layout_width="180dp"
-            android:layout_height="180dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
-            android:background="#00FF66"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🚘"
-                android:textSize="36sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="ATIVO"
-                android:textColor="#000000"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="● Co-piloto ativo. De olho na pista."
-            android:textColor="#00FF66"
-            android:textSize="14sp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp" />
-
-        <!-- Card Modo Direção (Abre permissão de notificação) -->
-        <LinearLayout
-            android:id="@+id/cardDirectionMode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:background="#16221A"
-            android:padding="16dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🛡️ Modo direção"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Toque para ativar o acesso às notificações."
-                android:textColor="#8B98A5"
-                android:textSize="13sp"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Teste rápido"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginTop="28dp" />
-
-        <!-- Card Simulação de Mensagem -->
-        <LinearLayout
-            android:id="@+id/btnSimulate"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:background="#1C232A"
-            android:padding="16dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="▶ Simular mensagem recebida"
-                android:textColor="#00FF66"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ouça o resumo e responda sem tocar na tela."
-                android:textColor="#8B98A5"
-                android:textSize="13sp"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🔊 O áudio é reproduzido em volume confortável"
-            android:textColor="#8B98A5"
-            android:textSize="12sp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="24dp" />
-
-    </LinearLayout>
-</ScrollView>
+</LinearLayout>

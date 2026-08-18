@@ -24,75 +24,8 @@ jobs:
       with:
         gradle-version: '8.2'
 
-    - name: Restaurar Projeto e Configurar Propriedades
-      run: |
-        # Restaura o arquivo build.gradle.kts corrompido para o estado original
-        git checkout -- app/
-
-        # Limpa e recria apenas os arquivos da raiz
-        rm -f build.gradle settings.gradle build.gradle.kts settings.gradle.kts gradle.properties
-
-        cat << 'EOF' > settings.gradle
-        pluginManagement {
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        rootProject.name = "copiloto"
-        include ':app'
-        EOF
-
-        cat << 'EOF' > build.gradle
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.1.4'
-                classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.20'
-            }
-        }
-        EOF
-
-        cat << 'EOF' > gradle.properties
-        android.useAndroidX=true
-        android.nonTransitiveRClass=false
-        kotlin.suppressKotlinVersionCompatibilityCheck=true
-        kotlin.jvm.target.validation.mode=warning
-        suppressKotlinVersionCompatibilityCheck=true
-        EOF
-
-    - name: Injetar Tema de Suporte
-      run: |
-        mkdir -p app/src/main/res/values
-        cat << 'EOF' > app/src/main/res/values/auto_generated_themes.xml
-        <?xml version="1.0" encoding="utf-8"?>
-        <resources>
-            <style name="Theme.CopilotoAuto" parent="android:Theme.Material.Light.NoActionBar" />
-        </resources>
-        EOF
-
-    - name: Compilar APK e Diagnosticar
-      run: |
-        gradle assembleDebug \
-          -Pkotlin.suppressKotlinVersionCompatibilityCheck=true \
-          -Pandroidx.compose.compiler.suppressKotlinVersionCompatibilityCheck=true \
-          --console=plain > build_output.log 2>&1 || {
-            echo "==================== MOTIVO EXATO DA FALHA ===================="
-            grep -E "e: |Error:|FAILED:|AAPT:" build_output.log | head -n 30
-            echo "=============================================================="
-            exit 1
-          }
+    - name: Compilar APK
+      run: gradle assembleDebug --console=plain
 
     - name: Salvar APK Gerado
       uses: actions/upload-artifact@v4

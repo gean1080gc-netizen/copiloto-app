@@ -3,22 +3,39 @@ package com.copiloto.auto.service
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.speech.tts.TextToSpeech
-import com.copiloto.auto.data.VipFilterRepository
-import com.copiloto.auto.data.VoiceShortcuts
+import java.util.Locale
 
-class CarNotificationListenerService : NotificationListenerService() {
-    override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        val title = sbn?.notification?.extras?.getString(Notification.EXTRA_TITLE) ?: return
-        val text = sbn.notification?.extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: return
+class CarNotificationListenerService : NotificationListenerService(), TextToSpeech.OnInitListener {
 
-        val isVip = VipFilterRepository.isContactVip(title)
+    private var tts: TextToSpeech? = null
 
-        if (isVip) {
-            // LER EM VOZ ALTA (TTS)
-            tts?.speak("Mensagem VIP de $title: $text", TextToSpeech.QUEUE_FLUSH, null, "VIP_MSG")
-        } else {
-            // BLOQUEAR ÁUDIO & ENVIAR RESPOSTA AUTOMÁTICA
-            sendAutoReply(sbn, VoiceShortcuts.NON_VIP_AUTO_REPLY)
+    override fun onCreate() {
+        super.onCreate()
+        tts = TextToSpeech(this, this)
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            tts?.language = Locale("pt", "BR")
         }
+    }
+
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        super.onNotificationPosted(sbn)
+        sbn?.let {
+            val extras = it.notification.extras
+            val title = extras.getString("android.title") ?: ""
+            val text = extras.getCharSequence("android.text")?.toString() ?: ""
+
+            if (text.isNotEmpty()) {
+                tts?.speak("$title diz: $text", TextToSpeech.QUEUE_ADD, null, null)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        super.onDestroy()
     }
 }

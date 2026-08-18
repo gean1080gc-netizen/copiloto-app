@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             Toast.makeText(this, "Áudio interrompido", Toast.LENGTH_SHORT).show()
         }
 
-        // Abrir configurações de notificação
+        // Abrir menu de permissões de notificação
         cardPermissions?.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }

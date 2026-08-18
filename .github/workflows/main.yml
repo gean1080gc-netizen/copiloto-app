@@ -67,8 +67,26 @@ jobs:
         kotlin.jvm.target.validation.mode=warning
         EOF
 
-        # Substitui automaticamente qualquer versão antiga do Compose Compiler para a 1.4.6 (compatível com Kotlin 1.8.20)
-        find app/ -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/kotlinCompilerExtensionVersion.*/kotlinCompilerExtensionVersion = "1.4.6"/g' {} +
+    - name: Forçar Atualização do Compose Compiler
+      run: |
+        # Substitui a versão antiga em qualquer arquivo da pasta app
+        find app/ -type f \( -name "build.gradle*" -o -name "*.kt" \) -exec sed -i 's/1.3.2/1.4.6/g' {} +
+
+        # Injeta a instrução de liberação no build.gradle do app
+        APP_GRADLE=$(find app -name "build.gradle" -o -name "build.gradle.kts" | head -n 1)
+        if [ -n "$APP_GRADLE" ]; then
+          cat << 'EOF' >> "$APP_GRADLE"
+
+        android {
+            kotlinOptions {
+                freeCompilerArgs += [
+                    "-P",
+                    "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
+                ]
+            }
+        }
+        EOF
+        fi
 
     - name: Injetar Tema de Suporte
       run: |

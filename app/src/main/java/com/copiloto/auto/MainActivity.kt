@@ -1,7 +1,6 @@
 package com.copiloto.auto
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
@@ -17,48 +16,42 @@ class MainActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("copiloto_prefs", MODE_PRIVATE)
 
-        val chkUber = findViewById<CheckBox?>(R.id.chkUber)
-        val chk99 = findViewById<CheckBox?>(R.id.chk99)
-        val chkWhats = findViewById<CheckBox?>(R.id.chkWhats)
-        val chkIgnoreGroups = findViewById<CheckBox?>(R.id.chkIgnoreGroups)
-        val btnTestSound = findViewById<Button?>(R.id.btnTestSound)
+        val chkUber = findViewById<CheckBox>(R.id.chkUber)
+        val chk99 = findViewById<CheckBox>(R.id.chk99)
+        val chkWhats = findViewById<CheckBox>(R.id.chkWhats)
+        val chkIgnoreGroups = findViewById<CheckBox>(R.id.chkIgnoreGroups)
+        val btnTestSound = findViewById<Button>(R.id.btnTestSound)
 
-        chkUber?.isChecked = prefs.getBoolean("chk_uber", true)
-        chk99?.isChecked = prefs.getBoolean("chk_99", true)
-        chkWhats?.isChecked = prefs.getBoolean("chk_whats", false)
-        chkIgnoreGroups?.isChecked = prefs.getBoolean("chk_ignore_groups", true)
+        chkUber.isChecked = prefs.getBoolean("chk_uber", true)
+        chk99.isChecked = prefs.getBoolean("chk_99", true)
+        chkWhats.isChecked = prefs.getBoolean("chk_whats", false)
+        chkIgnoreGroups.isChecked = prefs.getBoolean("chk_ignore_groups", true)
 
-        chkUber?.setOnCheckedChangeListener { _, isChecked ->
+        chkUber.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("chk_uber", isChecked).apply()
         }
-        chk99?.setOnCheckedChangeListener { _, isChecked ->
+        chk99.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("chk_99", isChecked).apply()
         }
-        chkWhats?.setOnCheckedChangeListener { _, isChecked ->
+        chkWhats.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("chk_whats", isChecked).apply()
         }
-        chkIgnoreGroups?.setOnCheckedChangeListener { _, isChecked ->
+        chkIgnoreGroups.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("chk_ignore_groups", isChecked).apply()
         }
 
-        btnTestSound?.setOnClickListener {
+        btnTestSound.setOnClickListener {
             val intent = Intent(this, MyNotificationService::class.java)
             startService(intent)
         }
-
-        checkAndRequestPermissions()
     }
 
     override fun onResume() {
         super.onResume()
-        checkAndRequestPermissions()
+        checkNotificationAccess()
     }
 
-    private fun checkAndRequestPermissions() {
-        if (Build.VERSION.SDK_INT >= 33) {
-            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 101)
-        }
-
+    private fun checkNotificationAccess() {
         if (!isNotificationServiceEnabled()) {
             AlertDialog.Builder(this)
                 .setTitle("Permissão Necessária")

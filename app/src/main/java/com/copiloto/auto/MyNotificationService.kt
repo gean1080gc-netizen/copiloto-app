@@ -29,7 +29,6 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
             tts?.setPitch(0.9f)
             tts?.setSpeechRate(0.9f)
 
-            // --- CORREÇÃO: Força o Android a tratar como som de mídia/assistente ---
             val audioAttributes = AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
@@ -57,8 +56,9 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
         val title = extras.getString("android.title") ?: ""
         var text = extras.getCharSequence("android.text")?.toString() ?: ""
 
-        if (text.isEmpty()) return
+        if (text.isEmpty() && title.isEmpty()) return
 
+        // Ignora SMS / Códigos de Confirmação / PIN
         val hasCodeWord = text.contains("código", ignoreCase = true) ||
                           text.contains("pin", ignoreCase = true) ||
                           text.contains("verificação", ignoreCase = true)
@@ -83,14 +83,60 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
                 }
             }
 
-            if (text.length > 100) {
-                text = text.take(100) + "... mensagem longa."
+            var messageToSpeak: String? = null
+
+            // Se for Uber ou 99, tenta extrair os valores e calcular R$/KM
+            if (isUber || is99) {
+                messageToSpeak = processRideOffer(title, text)
+            }
+
+            // Se não for oferta de corrida ou for mensagem comum (WhatsApp / Chat)
+            if (messageToSpeak == null) {
+                if (text.length > 100) {
+                    text = text.take(100) + "... mensagem longa."
+                }
+                messageToSpeak = "$title disse: $text"
             }
 
             playBeepSound()
-            val fullMessage = "$title disse: $text"
-            tts?.speak(fullMessage, TextToSpeech.QUEUE_ADD, null, null)
+            tts?.speak(messageToSpeak, TextToSpeech.QUEUE_ADD, null, null)
         }
+    }
+
+    // Função que extrai os valores da notificação e calcula o ganho por KM
+    private fun processRideOffer(title: String, text: String): String? {
+        val fullContent = "$title $text"
+
+        // Busca por valores em Reais (ex: R$ 25,00 / R$ 25 / R$25.50)
+        val priceRegex = Regex("""R\$\s?(\d+([.,]\d{1,2})?)""", RegexOption.IGNORE_CASE)
+        val priceMatch = priceRegex.find(fullContent)
+
+        // Busca por distância em KM (ex: 8,5 km / 8.5km / 8 km)
+        val distanceRegex = Regex("""(\d+([.,]\d{1,2})?)\s?km""", RegexOption.IGNORE_CASE)
+        val distanceMatch = distanceRegex.find(fullContent)
+
+        if (priceMatch != null && distanceMatch != null) {
+            try {
+                val priceStr = priceMatch.groupValues[1].replace(",", ".")
+                val distanceStr = distanceMatch.groupValues[1].replace(",", ".")
+
+                val price = priceStr.toFloat()
+                val distance = distanceStr.toFloat()
+
+                if (distance > 0f) {
+                    val rate = price / distance
+
+                    val formattedPrice = String.format(Locale("pt", "BR"), "%.2f", price).replace(".", ",")
+                    val formattedDistance = String.format(Locale("pt", "BR"), "%.1f", distance).replace(".", ",")
+                    val formattedRate = String.format(Locale("pt", "BR"), "%.2f", rate).replace(".", ",")
+
+                    return "Nova corrida. $formattedPrice reais para $formattedDistance quilômetros. Dá $formattedRate reais por quilômetro."
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        return null
     }
 
     private fun playBeepSound() {

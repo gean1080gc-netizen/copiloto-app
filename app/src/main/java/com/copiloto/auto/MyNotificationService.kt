@@ -1,5 +1,6 @@
 package com.copiloto.auto
 
+import android.app.Notification
 import android.content.Context
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -13,6 +14,10 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
 
     private var tts: TextToSpeech? = null
 
+    companion object {
+        var lastNotificationAction: Notification.Action? = null
+    }
+
     override fun onCreate() {
         super.onCreate()
         tts = TextToSpeech(this, this)
@@ -21,8 +26,8 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             tts?.language = Locale("pt", "BR")
-            tts?.setPitch(0.9f)       // Tom um pouco mais grave
-            tts?.setSpeechRate(0.9f)  // Velocidade mais cadenciada
+            tts?.setPitch(0.9f)       // Tom mais suave/grave
+            tts?.setSpeechRate(0.9f)  // Velocidade cadenciada
         }
     }
 
@@ -37,7 +42,7 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
         val extras = sbn.notification.extras
         val packageName = sbn.packageName ?: ""
 
-        // 1. FILTRO: Ignorar conversas de grupo (se a opção estiver ativa)
+        // 1. FILTRO: Ignorar conversas de grupo
         val isGroup = extras.getBoolean("android.isGroupConversation", false)
         val ignoreGroups = prefs.getBoolean("chk_ignore_groups", true)
         if (ignoreGroups && isGroup) return
@@ -51,7 +56,7 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
         val hasCodeWord = text.contains("código", ignoreCase = true) ||
                           text.contains("pin", ignoreCase = true) ||
                           text.contains("verificação", ignoreCase = true)
-        val hasNumbersOnly = text.contains(Regex("\\b\\d{4,6}\\b")) // Procura 4 a 6 dígitos numéricos isolados
+        val hasNumbersOnly = text.contains(Regex("\\b\\d{4,6}\\b"))
 
         if (hasCodeWord || hasNumbersOnly) return
 
@@ -66,12 +71,21 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
 
         if (isUber || is99 || isWhats) {
 
-            // 3. LIMITE DE TAMANHO: Truncar textos muito longos
+            // Armazena a ação de resposta para o recurso de voz
+            sbn.notification.actions?.forEach { action ->
+                action.remoteInputs?.let { remoteInputs ->
+                    if (remoteInputs.isNotEmpty()) {
+                        lastNotificationAction = action
+                    }
+                }
+            }
+
+            // 3. LIMITE DE TAMANHO: Truncar textos longos
             if (text.length > 100) {
                 text = text.take(100) + "... mensagem longa."
             }
 
-            // 4. BIPE SONORO: Toca um 'pip' antes de falar
+            // 4. BIPE SONORO: Toca um aviso sonoro antes de falar
             playBeepSound()
 
             val fullMessage = "$title disse: $text"
@@ -79,7 +93,6 @@ class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInit
         }
     }
 
-    // Função responsável pelo som de confirmação
     private fun playBeepSound() {
         try {
             val toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)

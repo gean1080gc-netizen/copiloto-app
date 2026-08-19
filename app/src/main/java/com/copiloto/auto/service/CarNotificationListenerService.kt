@@ -2,6 +2,8 @@ package com.copiloto.auto.service
 
 import android.app.Notification
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.speech.tts.TextToSpeech
@@ -12,6 +14,7 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
 
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate() {
         super.onCreate()
@@ -29,7 +32,9 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-        if (sbn == null || !isTtsReady) return
+        
+        // Ignora notificações nulas, TTS indisponível ou notificações fixas/contínuas ("Você está online")
+        if (sbn == null || !isTtsReady || sbn.isOngoing) return
 
         val packageName = sbn.packageName ?: ""
         if (!isRideApp(packageName)) return
@@ -37,6 +42,8 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
         val extras: Bundle = sbn.notification.extras ?: return
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        
+        if (title.isBlank() && text.isBlank()) return
         val fullContent = "$title $text"
 
         val value = extractValue(fullContent)
@@ -50,7 +57,7 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
                 value, km, rate
             )
             falar(message)
-        } else if (text.isNotBlank()) {
+        } else if (text.isNotBlank() && !text.contains("procurando", ignoreCase = true)) {
             falar(text)
         }
     }
@@ -82,7 +89,9 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
     }
 
     private fun falar(texto: String) {
-        tts?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, "COPILOTO_TTS_ID")
+        mainHandler.post {
+            tts?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, "COPILOTO_TTS_ID")
+        }
     }
 
     override fun onDestroy() {

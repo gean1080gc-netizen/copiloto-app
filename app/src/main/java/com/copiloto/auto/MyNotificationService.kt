@@ -1,81 +1,136 @@
 package com.copiloto.auto
 
-import android.content.Intent
-import android.os.Build
-import android.os.Bundle
-import android.provider.Settings
-import android.widget.Button
-import android.widget.CheckBox
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import android.app.Notification
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
+import android.speech.tts.TextToSpeech
+import java.util.Locale
+import java.util.regex.Pattern
 
-class MainActivity : AppCompatActivity() {
+class MyNotificationService : NotificationListenerService(), TextToSpeech.OnInitListener {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+    private var tts: TextToSpeech? = null
 
-        checkAndRequestPermissions()
+    companion object {
+        var lastNotificationAction: Notification.Action? = null
+    }
 
-        val prefs = getSharedPreferences("copiloto_prefs", MODE_PRIVATE)
+    override fun onCreate() {
+        super.onCreate()
+        tts = TextToSpeech(this, this)
+    }
 
-        val chkUber = findViewById<CheckBox>(R.id.chkUber)
-        val chk99 = findViewById<CheckBox>(R.id.chk99)
-        val chkWhats = findViewById<CheckBox>(R.id.chkWhats)
-        val chkIgnoreGroups = findViewById<CheckBox>(R.id.chkIgnoreGroups)
-        val btnTestSound = findViewById<Button>(R.id.btnTestSound)
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            tts?.language = Locale("pt", "BR")
+            tts?.setPitch(0.9f)
+            tts?.setSpeechRate(0.9f)
 
-        chkUber.isChecked = prefs.getBoolean("chk_uber", true)
-        chk99.isChecked = prefs.getBoolean("chk_99", true)
-        chkWhats.isChecked = prefs.getBoolean("chk_whats", false)
-        chkIgnoreGroups.isChecked = prefs.getBoolean("chk_ignore_groups", true)
-
-        chkUber.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("chk_uber", isChecked).apply()
-        }
-        chk99.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("chk_99", isChecked).apply()
-        }
-        chkWhats.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("chk_whats", isChecked).apply()
-        }
-        chkIgnoreGroups.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("chk_ignore_groups", isChecked).apply()
-        }
-
-        btnTestSound.setOnClickListener {
-            val intent = Intent(this, MyNotificationService::class.java)
-            startService(intent)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build()
+            
+            tts?.setAudioAttributes(audioAttributes)
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        checkAndRequestPermissions()
-    }
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        super.onNotificationPosted(sbn)
+        if (sbn == null) return
 
-    private fun checkAndRequestPermissions() {
-        // Pedir permissão de Notificação do Android 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
-        }
+        val prefs = getSharedPreferences("copiloto_prefs", Context.MODE_PRIVATE)
+        val isAssistantActive = prefs.getBoolean("is_active", true)
+        if (!isAssistantActive) return
 
-        // Verificar se tem Acesso às Notificações
-        if (!isNotificationServiceEnabled()) {
-            AlertDialog.Builder(this)
-                .setTitle("Permissão Necessária")
-                .setMessage("Para o CoPiloto Auto funcionar, ative a chave do app na próxima tela.")
-                .setPositiveButton("Ativar Agora") { _, _ ->
-                    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        val extras = sbn.notification.extras
+        val packageName = sbn.packageName ?: ""
+
+        val isGroup = extras.getBoolean("android.isGroupConversation", false)
+        val ignoreGroups = prefs.getBoolean("chk_ignore_groups", true)
+        if (ignoreGroups && isGroup) return
+
+        val title = extras.getString("android.title") ?: ""
+        var text = extras.getCharSequence("android.text")?.toString() ?: ""
+
+        if (text.isEmpty() && title.isEmpty()) return
+
+        val checkUber = prefs.getBoolean("chk_uber", true)
+        val check99 = prefs.getBoolean("chk_99", true)
+        val checkWhats = prefs.getBoolean("chk_whats", false)
+
+        val isUber = packageName.contains("ubercab") && checkUber
+        val is99 = packageName.contains("taxis99") && check99
+        val isWhats = packageName.contains("whatsapp") && checkWhats
+
+        if (isUber || is99 || isWhats) {
+            var messageToSpeak: String? = null
+
+            if (isUber || is99) {
+                messageToSpeak = processRideOffer(title, text)
+            }
+
+            if (messageToSpeak == null) {
+                if (text.length > 100) {
+                    text = text.take(100) + "... mensagem longa."
                 }
-                .setCancelable(false)
-                .show()
+                messageToSpeak = "$title disse: $text"
+            }
+
+            playBeepSound()
+            tts?.speak(messageToSpeak, TextToSpeech.QUEUE_ADD, null, null)
         }
     }
 
-    private fun isNotificationServiceEnabled(): Boolean {
-        val pkgName = packageName
-        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
-        return flat != null && flat.contains(pkgName)
+    private fun processRideOffer(title: String, text: String): String? {
+        val fullContent = "$title $text".lowercase(Locale.getDefault())
+
+        val pricePattern = Pattern.compile("r\\$\\s?(\\d+([.,]\\d{1,2})?)")
+        val priceMatcher = pricePattern.matcher(fullContent)
+
+        val distPattern = Pattern.compile("(\\d+([.,]\\d{1,2})?)\\s?km")
+        val distMatcher = distPattern.matcher(fullContent)
+
+        if (priceMatcher.find() && distMatcher.find()) {
+            try {
+                val priceStr = priceMatcher.group(1)?.replace(",", ".") ?: return null
+                val distStr = distMatcher.group(1)?.replace(",", ".") ?: return null
+
+                val price = priceStr.toFloat()
+                val distance = distStr.toFloat()
+
+                if (distance > 0f) {
+                    val rate = price / distance
+
+                    val formattedPrice = String.format(Locale("pt", "BR"), "%.2f", price)
+                    val formattedDistance = String.format(Locale("pt", "BR"), "%.1f", distance)
+                    val formattedRate = String.format(Locale("pt", "BR"), "%.2f", rate)
+
+                    return "Nova corrida. $formattedPrice reais para $formattedDistance quilômetros. Dá $formattedRate reais por quilômetro."
+                }
+            } catch (e: Exception) {
+                return null
+            }
+        }
+        return null
+    }
+
+    private fun playBeepSound() {
+        try {
+            val toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
+            toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        super.onDestroy()
     }
 }

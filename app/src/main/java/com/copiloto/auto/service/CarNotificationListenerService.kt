@@ -14,11 +14,15 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
 
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
-    private val mainHandler = Handler(Looper.getMainLooper())
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     override fun onCreate() {
         super.onCreate()
-        tts = TextToSpeech(this, this)
+        try {
+            tts = TextToSpeech(applicationContext, this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onInit(status: Int) {
@@ -32,33 +36,36 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-        
-        // Ignora notificações nulas, TTS indisponível ou notificações fixas/contínuas ("Você está online")
-        if (sbn == null || !isTtsReady || sbn.isOngoing) return
 
-        val packageName = sbn.packageName ?: ""
-        if (!isRideApp(packageName)) return
+        try {
+            if (sbn == null || !isTtsReady || sbn.isOngoing) return
 
-        val extras: Bundle = sbn.notification.extras ?: return
-        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
-        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
-        
-        if (title.isBlank() && text.isBlank()) return
-        val fullContent = "$title $text"
+            val packageName = sbn.packageName ?: ""
+            if (!isRideApp(packageName)) return
 
-        val value = extractValue(fullContent)
-        val km = extractKm(fullContent)
+            val extras: Bundle = sbn.notification.extras ?: return
+            val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
+            val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
 
-        if (value != null && km != null && km > 0f) {
-            val rate = value / km
-            val message = String.format(
-                Locale("pt", "BR"),
-                "Nova corrida. %.2f reais para %.1f quilômetros. Dá %.2f reais por quilômetro.",
-                value, km, rate
-            )
-            falar(message)
-        } else if (text.isNotBlank() && !text.contains("procurando", ignoreCase = true)) {
-            falar(text)
+            if (title.isBlank() && text.isBlank()) return
+            val fullContent = "$title $text"
+
+            val value = extractValue(fullContent)
+            val km = extractKm(fullContent)
+
+            if (value != null && km != null && km > 0f) {
+                val rate = value / km
+                val message = String.format(
+                    Locale("pt", "BR"),
+                    "Nova corrida. %.2f reais para %.1f quilômetros. Dá %.2f reais por quilômetro.",
+                    value, km, rate
+                )
+                falar(message)
+            } else if (text.isNotBlank() && !text.contains("procurando", ignoreCase = true)) {
+                falar(text)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -90,13 +97,21 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
 
     private fun falar(texto: String) {
         mainHandler.post {
-            tts?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, "COPILOTO_TTS_ID")
+            try {
+                tts?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, "COPILOTO_TTS_ID")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     override fun onDestroy() {
-        tts?.stop()
-        tts?.shutdown()
+        try {
+            tts?.stop()
+            tts?.shutdown()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         super.onDestroy()
     }
 }

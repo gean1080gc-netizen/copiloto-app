@@ -2,41 +2,26 @@ package com.copiloto.auto.service
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import android.speech.tts.TextToSpeech
-import java.util.*
 
-class CarNotificationListenerService : NotificationListenerService(), TextToSpeech.OnInitListener {
-
-    private var tts: TextToSpeech? = null
-
-    override fun onCreate() {
-        super.onCreate()
-        tts = TextToSpeech(this, this)
-    }
-
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            tts?.language = Locale("pt", "BR")
-        }
-    }
+class CarNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+
+        // 📌 Filtrar só WhatsApp
+        val pacote = sbn.packageName
+
+        if (pacote != "com.whatsapp") {
+            return
+        }
+
+        // 📌 Pegar conteúdo da notificação
         val extras = sbn.notification.extras
 
-        val title = extras.getString("android.title") ?: return
-        val text = extras.getCharSequence("android.text")?.toString() ?: return
+        val titulo = extras.getString("android.title") ?: "Desconhecido"
+        val mensagem = extras.getCharSequence("android.text")?.toString() ?: ""
 
-        val mensagem = "Mensagem de $title: $text"
-
-        falar(mensagem)
-    }
-
-    private fun falar(texto: String) {
-        tts?.speak(texto, TextToSpeech.QUEUE_ADD, null, null)
-    }
-
-    override fun onDestroy() {
-        tts?.shutdown()
-        super.onDestroy()
+        // 📌 TESTE (vai aparecer no Logcat)
+        android.util.Log.d("COPILOTO", "De: $titulo")
+        android.util.Log.d("COPILOTO", "Msg: $mensagem")
     }
 }

@@ -25,18 +25,25 @@ class CarNotificationListenerService : NotificationListenerService(), TextToSpee
         }
     }
 
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+    }
+
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale("pt", "BR"))
-            if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
-                isTtsReady = true
+            try {
+                val result = tts?.setLanguage(Locale("pt", "BR"))
+                if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
+                    isTtsReady = true
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-
         try {
             if (sbn == null || !isTtsReady || sbn.isOngoing) return
 
